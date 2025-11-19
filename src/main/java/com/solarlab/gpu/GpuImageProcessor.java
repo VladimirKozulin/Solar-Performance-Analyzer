@@ -11,6 +11,16 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
 /**
+ * Процессор изображений с GPU-ускорением (симуляция).
+ * 
+ * В production версии использовал бы CUDA через JavaCPP для реального GPU-ускорения.
+ * Текущая реализация симулирует GPU через многопоточную обработку на CPU.
+ * 
+ * Демонстрирует:
+ * - Параллельную обработку изображений
+ * - Обнаружение границ (edge detection)
+ * - Автоматический fallback на CPU
+ * 
  * GPU-accelerated image processor using CUDA via JavaCPP.
  * Falls back to CPU if GPU is unavailable.
  */
@@ -115,6 +125,9 @@ public class GpuImageProcessor {
     }
 
     /**
+     * Оптимизированное обнаружение границ, симулирующее GPU параллелизм.
+     * Использует многопоточность для имитации параллельной обработки GPU.
+     * 
      * Optimized edge detection simulating GPU parallel processing.
      * Uses multi-threading to simulate GPU parallelism.
      */
@@ -123,10 +136,10 @@ public class GpuImageProcessor {
         int height = image.getHeight();
         BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
-        // Convert to grayscale in parallel
+        // Преобразование в оттенки серого параллельно / Convert to grayscale in parallel
         int[][] gray = new int[width][height];
         
-        // Simulate GPU parallel processing with thread pool
+        // Симуляция GPU параллелизма через пул потоков / Simulate GPU parallel processing with thread pool
         int numThreads = Runtime.getRuntime().availableProcessors();
         Thread[] threads = new Thread[numThreads];
         int rowsPerThread = height / numThreads;

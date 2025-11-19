@@ -10,12 +10,21 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * Консольная версия анализатора солнечных данных.
+ * 
+ * Демонстрирует:
+ * - Загрузку реальных данных с NASA SOHO
+ * - Сравнение производительности GPU vs CPU
+ * - Реактивную обработку данных
+ * - Метрики производительности в реальном времени
+ * 
  * Console version of Solar Analyzer for testing without JavaFX.
  */
 public class SolarAnalyzerConsole {
     private static final Logger logger = LoggerFactory.getLogger(SolarAnalyzerConsole.class);
     
     public static void main(String[] args) {
+        // Вывод информации о системе / System information
         logger.info("=".repeat(80));
         logger.info("Solar Performance Analyzer - Console Mode");
         logger.info("=".repeat(80));
@@ -24,8 +33,9 @@ public class SolarAnalyzerConsole {
         logger.info("Max Memory: {} MB", Runtime.getRuntime().maxMemory() / 1024 / 1024);
         logger.info("=".repeat(80));
         
+        // Инициализация конвейера обработки / Initialize processing pipeline
         SolarDataPipeline pipeline = new SolarDataPipeline();
-        CountDownLatch latch = new CountDownLatch(10); // Process 10 images
+        CountDownLatch latch = new CountDownLatch(10); // Обработать 10 изображений / Process 10 images
         
         logger.info("Starting data pipeline...");
         logger.info("Will process 10 images and show performance comparison");
@@ -65,8 +75,13 @@ public class SolarAnalyzerConsole {
         logger.info("=".repeat(80));
     }
     
+    /**
+     * Отображение результатов обработки одного кадра.
+     * Display results for a single frame.
+     */
     private static void displayResults(ProcessedImage image, SolarDataPipeline pipeline) {
         long frame = pipeline.getFrameCount();
+        // Конвертация наносекунд в миллисекунды / Convert nanoseconds to milliseconds
         double gpuTime = image.getGpuProcessingTime() / 1_000_000.0;
         double cpuTime = image.getCpuProcessingTime() / 1_000_000.0;
         double speedup = cpuTime > 0 ? cpuTime / gpuTime : 1.0;
@@ -80,6 +95,10 @@ public class SolarAnalyzerConsole {
         logger.info("-".repeat(80));
     }
     
+    /**
+     * Отображение финальной статистики производительности.
+     * Display final performance statistics.
+     */
     private static void displayFinalStats(SolarDataPipeline pipeline) {
         var metrics = pipeline.getMetrics();
         

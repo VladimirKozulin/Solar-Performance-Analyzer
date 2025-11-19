@@ -11,6 +11,15 @@ import reactor.netty.resources.ConnectionProvider;
 import java.time.Duration;
 
 /**
+ * Высокопроизводительный HTTP-клиент на базе Netty.
+ * 
+ * Особенности:
+ * - Connection pooling для повторного использования соединений
+ * - Direct byte buffers для zero-copy операций
+ * - Адаптивное изменение размера буферов
+ * - Автоматическое следование редиректам
+ * - TCP оптимизации (TCP_NODELAY, SO_KEEPALIVE)
+ * 
  * High-performance Netty-based HTTP client with connection pooling and zero-copy buffers.
  */
 public class NettyImageDownloader {
@@ -19,13 +28,14 @@ public class NettyImageDownloader {
     private final HttpClient httpClient;
 
     public NettyImageDownloader() {
+        // Настройка пула соединений для оптимальной производительности
         // Configure connection pool for optimal performance
         ConnectionProvider provider = ConnectionProvider.builder("solar-pool")
-            .maxConnections(10)
-            .maxIdleTime(Duration.ofSeconds(30))
-            .maxLifeTime(Duration.ofMinutes(5))
-            .pendingAcquireMaxCount(50)
-            .evictInBackground(Duration.ofSeconds(60))
+            .maxConnections(10)                          // Максимум 10 соединений / Max 10 connections
+            .maxIdleTime(Duration.ofSeconds(30))         // Время простоя / Idle time
+            .maxLifeTime(Duration.ofMinutes(5))          // Время жизни / Lifetime
+            .pendingAcquireMaxCount(50)                  // Очередь ожидания / Pending queue
+            .evictInBackground(Duration.ofSeconds(60))   // Фоновая очистка / Background eviction
             .build();
 
         // Create HTTP client with direct buffer allocation

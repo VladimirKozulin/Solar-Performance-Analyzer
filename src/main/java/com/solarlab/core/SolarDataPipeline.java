@@ -14,6 +14,15 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * Высокопроизводительный реактивный конвейер для обработки солнечных данных.
+ * 
+ * Основные возможности:
+ * - Неблокирующая загрузка данных с NASA SOHO
+ * - Параллельная обработка на GPU и CPU
+ * - Автоматический retry и fallback
+ * - Zero-copy обработка данных
+ * - Сбор метрик производительности
+ * 
  * High-performance reactive pipeline for solar data processing.
  * Implements zero-copy data flow with GPU acceleration.
  */
@@ -43,10 +52,14 @@ public class SolarDataPipeline {
         initializePipeline();
     }
 
+    /**
+     * Инициализация реактивного конвейера обработки.
+     * Initialize reactive processing pipeline.
+     */
     private void initializePipeline() {
         dataStream = Flux.interval(Duration.ZERO, UPDATE_INTERVAL)
-            .flatMap(tick -> downloadImage())
-            .flatMap(this::processImage)
+            .flatMap(tick -> downloadImage())  // Загрузка изображения / Download image
+            .flatMap(this::processImage)       // Обработка GPU + CPU / Process GPU + CPU
             .doOnNext(image -> {
                 long frame = frameCounter.incrementAndGet();
                 if (frame % 10 == 0) {
@@ -55,24 +68,34 @@ public class SolarDataPipeline {
                 }
             })
             .doOnError(error -> logger.error("Pipeline error", error))
-            .retry()
-            .share()
+            .retry()  // Автоматический retry при ошибках / Auto-retry on errors
+            .share()  // Горячий observable для множественных подписчиков / Hot observable
             .subscribeOn(Schedulers.parallel());
     }
 
+    /**
+     * Загрузка изображения с автоматическим fallback.
+     * Download image with automatic fallback.
+     */
     private Mono<ByteBuf> downloadImage() {
         return downloader.download(PRIMARY_URL)
             .onErrorResume(error -> {
+                // При ошибке переключаемся на резервный URL / Switch to fallback URL on error
                 logger.warn("Primary URL failed, trying fallback: {}", error.getMessage());
                 return downloader.download(FALLBACK_URL);
             })
-            .timeout(Duration.ofSeconds(10))
+            .timeout(Duration.ofSeconds(10))  // Таймаут 10 секунд / 10 second timeout
             .doOnSuccess(buf -> metrics.recordDownload(buf.readableBytes()));
     }
 
+    /**
+     * Параллельная обработка изображения на GPU и CPU.
+     * Parallel image processing on GPU and CPU.
+     */
     private Mono<ProcessedImage> processImage(ByteBuf imageData) {
         long startTime = System.nanoTime();
         
+        // Запускаем GPU и CPU обработку параллельно / Run GPU and CPU processing in parallel
         return Mono.zip(
             processWithGpu(imageData),
             processWithCpu(imageData)
@@ -84,6 +107,7 @@ public class SolarDataPipeline {
             long totalTime = System.nanoTime() - startTime;
             metrics.recordProcessing(totalTime);
             
+            // Объединяем результаты / Combine results
             return new ProcessedImage(
                 gpuResult.getData(),
                 cpuResult.getData(),
@@ -92,7 +116,7 @@ public class SolarDataPipeline {
                 imageData.readableBytes()
             );
         })
-        .doFinally(signal -> imageData.release());
+        .doFinally(signal -> imageData.release());  // Освобождаем буфер / Release buffer
     }
 
     private Mono<ProcessedImage> processWithGpu(ByteBuf data) {
